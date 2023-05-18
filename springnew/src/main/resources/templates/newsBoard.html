@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org/">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>NewsBoard</title>
+</head>
+<body>
+<h1 class="text-3xl font-bold text-center mt-6" th:onclick="|location.href='@{/newsmain}'|">
+    뉴스 게시판
+</h1>
+<br>
+<th:block th:if="${newsList}">
+    <div class="border-0">
+        <table class="border-none rounded-lg overflow-hidden text-center table-layout: auto mx-auto w-5/6">
+            <thead
+                    class="border-none font-medium text-white bg-blue-400">
+            <th class="px-6 py-2 border-none">번호</th>
+            <th class="px-6 py-2 border-none">제목</th>
+            <th class="px-6 py-2 border-none">작성자</th>
+            <th class="px-6 py-2 border-none">작성일</th>
+            <th class="px-6 py-2 border-none">조회수</th>
+            </thead>
+            <tr th:each="news : ${newsList}" class="border-b border-slate-200 hover:bg-blue-100">
+                <td class="px-6 py-2">[[${news.id}]]</td>
+                <td class="px-6 py-2"
+                    th:id="${news.id}" th:onclick="|updateNews(${news.id})|">
+                    [[${news.title}]]
+                </td>
+                <td class="px-6 py-2" th:onclick="|location.href='@{/writer(writer=${news.writer})}'|">
+                    [[${news.writer}]]
+                </td>
+                <td class="px-6 py-2">[[${news.writedate}]]</td>
+                <td class="px-6 py-2">[[${news.cnt}]]</td>
+            </tr>
+        </table>
+        <nav class="mt-4">
+            <!--표에 사용될 변수값 초기화 -->
+            <table class="border border-slate-200 rounded-lg overflow-hidden w-1/2 text-center mx-auto mt-2 mb-2"
+                   th:with="start=${T(java.lang.Math).floor(newsPageInfo.number/10)*10 + 1},
+                    last=(${start + 9 < newsPageInfo.totalPages ? start + 9 : newsPageInfo.totalPages})">
+                <th:block th:with="
+                firstAddr=@{/newsmain(page=0)},
+                prevAddr=@{/newsmain(page=${newsPageInfo.number - 1})},
+                nextAddr=@{/newsmain(page=${newsPageInfo.number + 1})},
+                lastAddr=@{/newsmain(page=${newsPageInfo.totalPages - 1})}" class="border">
+                    <td class="w-24 hover:bg-blue-100 border border-slate-200">
+                        <a th:href="${firstAddr}" aria-label="First">
+                            <span aria-hidden="true">First</span>
+                        </a>
+                    </td>
+                    <!-- 이전 페이지로 가기 버튼 -->
+                    <td class="w-14 hover:bg-blue-100 border border-slate-200">
+                        <a th:href="${newsPageInfo.first} ? '#' :${prevAddr}"
+                           aria-label="Previous">
+                            <span aria-hidden="true">&lt;</span>
+                        </a>
+                    </td>
+                    <!--1,2,3,4,.. 등 페이지-->
+                    <td th:each="page: ${#numbers.sequence(start, last)}"
+                        class="w-14 hover:bg-blue-100 border border-slate-200">
+                        <a th:text="${page}" th:href="@{/newsmain(page=${page}-1)}"></a>
+                    </td>
+                    <!--다음 페이지로 -->
+                    <td class="w-14 hover:bg-blue-100 border border-slate-200">
+                        <a th:href="${newsPageInfo.last} ? '#' : ${nextAddr}"
+                           aria-label="Next">
+                            <span aria-hidden="true">&gt;</span>
+                        </a>
+                    </td>
+                    <!--맨 마지막 페이지로 이동 -->
+                    <td class="w-24 hover:bg-blue-100">
+                        <a th:href="${lastAddr}" aria-label="Last">
+                            <span aria-hidden="true">Last</span>
+                        </a>
+                    </td>
+                </th:block>
+            </table>
+        </nav>
+
+
+        <br>
+        <div class="text-center flex flex-nowrap justify-center mb-3">
+            <div class="w-68 flex flex-nowrap justify-end">
+                <form id="keyword-form" th:method="get" th:action="@{/search}" class="text-center">
+                    <input type="text" class="border border-black rounded-md" name="keyword">
+                </form>
+                <button type="submit" class="w-20 bg-slate-300 rounded-md ml-1" value="검색" form="keyword-form">검색
+                </button>
+            </div>
+            <div class="ml-1">
+                <button th:onclick="onInsertDisplay()" class="w-32 bg-slate-300 rounded-md h-full">뉴스 작성하기</button>
+            </div>
+        </div>
+    </div>
+</th:block>
+<div class="text-center">
+    <div id="news-insert-div" style="display:none" class="w-3/4 border rounded-md mx-auto mb-4">
+        <h1>뉴스 작성하기</h1>
+        <form id="news-insert-form" th:method="post" th:action="@{/insert}">
+            <input type="text" name="title" placeholder="제목" class="w-64 border border-black rounded-md m-1"><br>
+            <textarea type="text" name="content" placeholder="내용" class="w-64 border border-black rounded-md m-1"></textarea><br>
+            <input type="text" name="writer" placeholder="작성자" class="w-64 border border-black rounded-md m-1"><br>
+        </form>
+        <input type="submit" value="저장" form="news-insert-form" class="w-20 bg-slate-300 rounded-md m-1"/>
+        <input type="reset" value="재작성" class="w-20 bg-slate-300 rounded-md m-1">
+        <button th:onclick="offInsertDisplay()" class="w-20 bg-slate-300 rounded-md m-1">취소</button>
+    </div>
+</div>
+<div class="text-center">
+    <div id="news-update-div" style="display:none" class="w-3/4 border rounded-md mx-auto mb-10">
+        <h1>뉴스 내용</h1>
+        <form id="news-update-form" th:method="post" th:action="@{/update}">
+            <input id="update-id-input" type="hidden" name="id">
+            <input id="update-title-input" type="text" name="title" placeholder="제목"
+                   class="w-64 border border-black rounded-md m-1"><br>
+            <textarea id="update-content-input" type="text" name="content" placeholder="내용"
+                   class="w-64 h-6 border border-black rounded-md m-1"></textarea><br>
+            <input id="update-writer-input" type="text" name="writer" placeholder="작성자"
+                   class="w-64 border border-black rounded-md m-1"><br>
+        </form>
+        <button th:onclick="onUpdateDisplay()" class="w-20 bg-slate-300 rounded-md m-1">확인</button>
+        <input type="submit" value="수정" form="news-update-form" class="w-20 bg-slate-300 rounded-md m-1"/>
+        <button id="news-delete-button" th:onclick="newsDelete()" value="" class="w-20 bg-slate-300 rounded-md m-1">삭제
+        </button>
+    </div>
+</div>
+<script th:inline="javascript">
+    function onInsertDisplay() {
+        const isDisplay = document.getElementById("news-insert-div").style.display;
+        if (isDisplay === "none") {
+            document.getElementById("news-insert-div").style.display = "";
+        }
+    }
+
+    function offInsertDisplay() {
+        const isDisplay = document.getElementById("news-insert-div").style.display;
+        if (isDisplay === "") {
+            document.getElementById("news-insert-div").style.display = "none";
+        }
+    }
+
+    function onUpdateDisplay() {
+        const isDisplay = document.getElementById("news-update-div").style.display;
+        if (isDisplay === "") {
+            document.getElementById("news-update-div").style.display = "none";
+        }
+    }
+
+    function updateNews(id) {
+        const isDisplay = document.getElementById("news-update-div").style.display;
+        if (isDisplay === "none") {
+            document.getElementById("news-update-div").style.display = "";
+        }
+        let xhr = new XMLHttpRequest();
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                let newsJson = JSON.parse(xhr.responseText);
+                document.getElementById("update-id-input").value = newsJson["id"];
+                document.getElementById("update-title-input").value = newsJson["title"];
+                document.getElementById("update-content-input").value = newsJson["content"];
+                document.getElementById("update-writer-input").value = newsJson["writer"];
+                document.getElementById("news-delete-button").value = id;
+            }
+        }
+        xhr.open("GET", "/listOne?id=" + id);
+        xhr.send();
+    }
+
+    function newsDelete() {
+        const newId = document.getElementById("news-delete-button").value;
+        location.href = "/delete?id=" + newId;
+    }
+</script>
+</body>
+</html>
